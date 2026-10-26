@@ -1,0 +1,39 @@
+# Render Blueprint for IREME: one Python web service (API) + one static site (the app).
+# Dashboard: New > Blueprint > select your GitHub repo. Render will ask for the values marked "sync: false".
+services:
+  - type: web
+    name: ireme-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: IREME_ADMIN_PASSWORD      # the password you type on the Admin data page
+        sync: false
+      - key: IREME_SECRET_KEY          # signs admin sign-in tokens; Render generates a random one
+        generateValue: true
+      - key: IREME_CORS_ORIGINS        # the address of the app, e.g. https://ireme-web.onrender.com (no trailing slash)
+        sync: false
+      # --- Keep admin records, farmer submissions and logs between restarts (needs a paid plan) ---
+      # 1) change "plan: free" above to "plan: starter"  2) uncomment the disk below
+      # 3) add an env var IREME_DATABASE_PATH = /var/data/ireme.db
+      # disk:
+      #   name: ireme-data
+      #   mountPath: /var/data
+      #   sizeGB: 1
+
+  - type: web
+    name: ireme-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: VITE_API_BASE_URL         # the address of the API, e.g. https://ireme-api.onrender.com (no trailing slash)
+        sync: false
