@@ -1,23 +1,11 @@
-
-# Python
-venv/
-.venv/
-__pycache__/
-*.py[cod]
-
-# Node.js
 node_modules/
 dist/
-
-# Secrets and environment files
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
 .env
-.env.*
-!.env.example
-
-# Editor and operating system
-.vscode/
+backend/.env
+backend/data/ireme.db
 .DS_Store
-Thumbs.db
-
-# Logs
-*.log

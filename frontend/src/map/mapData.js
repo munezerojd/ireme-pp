@@ -1,6 +1,7 @@
 // IREME - agriculture map data logic (pure JavaScript, testable in Node).
 // Turns the NISR insight file into per-district values, colour classes and readable summaries.
 import { ALL_DISTRICTS, cropName, practiceName, knownCrops } from '../nisr/engine.js';
+import { THREAT_RW, THREAT_EN } from '../nisr/names.js';
 
 export const RWANDA_BOUNDS = [[-2.90, 28.80], [-1.00, 30.95]];
 
@@ -116,7 +117,7 @@ export function districtSummary(ins, d, layerId, crop, lang = 'EN') {
   parts.push(T(lang, `Improved seed on ${Math.round((a.improved_seed || 0) * 100)}% of plots, inorganic fertilizer on ${Math.round((a.inorganic || 0) * 100)}%, compost on ${Math.round((a.organic || 0) * 100)}%.`,
     `Imbuto nziza ku ${Math.round((a.improved_seed || 0) * 100)}% by’imirima, ifumbire mvaruganda ku ${Math.round((a.inorganic || 0) * 100)}%, compost ku ${Math.round((a.organic || 0) * 100)}%.`));
   const th = Object.entries(dd.soil_threats || {}).filter(([k, v]) => k !== 'none' && v >= 0.05).sort((x, y) => y[1] - x[1]).slice(0, 2);
-  if (th.length) parts.push(T(lang, `Main soil concerns: ${th.map(([k, v]) => `${k.replace('_', ' ')} ${Math.round(v * 100)}%`).join(', ')}.`, `Ibibazo by’ubutaka: ${th.map(([k, v]) => `${k.replace('_', ' ')} ${Math.round(v * 100)}%`).join(', ')}.`));
+  if (th.length) parts.push(T(lang, `Main soil concerns: ${th.map(([k, v]) => `${THREAT_EN[k] || k} ${Math.round(v * 100)}%`).join(', ')}.`, `Ibibazo by’ubutaka: ${th.map(([k, v]) => `${THREAT_RW[k] || k} ${Math.round(v * 100)}%`).join(', ')}.`));
   return parts.join(' ');
 }
 export const mapCrops = (ins) => knownCrops(ins).sort((a, b) => ins.crops[b].n - ins.crops[a].n);

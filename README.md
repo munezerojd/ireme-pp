@@ -249,3 +249,10 @@ When a good Kinyarwanda voice and recogniser exist, set `RW_VOICE_READY = true` 
 Rendering the app at phone size showed three things, now fixed: the header buttons are compact and wrap into rows; the left icon rail shows **all**
 pages (before, phones only showed the current page, so you could not reach other pages by touch); the sign-language panel is a small corner thumbnail on
 phones - tap it to enlarge or shrink. `RW_VOICE_READY`, dark mode and the notice all work on phones.
+
+## Full Kinyarwanda interface
+
+When Kinyarwanda is selected, every visible word is in Kinyarwanda: pages, buttons, dropdowns, charts and tables, crop and season names, the advisor
+(alerts, irrigation plan, dates), statistics, map, forecast, knowledge answers and the notice box. Only proper names stay as they are (IREME, NISR,
+Open-Meteo, product names such as DAP and Urea, district names). The text was checked by walking every page of the running app in Kinyarwanda and
+listing what was still English. Shared names and grammar helpers are in `frontend/src/nisr/names.js`. Please have a native speaker review the wording.

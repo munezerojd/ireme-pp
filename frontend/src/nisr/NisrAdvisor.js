@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { ALL_DISTRICTS, DISTRICT_COORDS, SEASON_LABEL, PRACTICE_KEYS, practiceName, cropName, currentSeason, loadInsights, advise, bestCrops, knownCrops, modelledCrops } from './engine.js';
 import { STAGES, STAGE_LABEL, IRRIGATION, IRRIGATION_LABEL, SOILS, SOIL_LABEL, forecastDays, kcFor } from './agronomy.js';
-import { dayLabel } from './engine.js';
+import { dayLabel, metaNote } from './engine.js';
 import { speak, stopSpeaking } from '../voice/speech.js';
 
 const h = React.createElement;
@@ -88,7 +88,7 @@ export default function NisrAdvisor({ lang = 'EN', apiBase = '', initialDistrict
     if (ag.planting) {
       agroBlocks.push(h('div', { className: 'recommendation' + (ag.planting.level === 'good' ? '' : ' nisr-risk'), key: 'plant', 'data-read-block': true }, h('b', null, T(lang, 'Is it time to plant?', 'Ni igihe cyo gutera?')), h('p', null, ag.planting.text), h('small', null, T(lang, 'Based on the 14-day Open-Meteo forecast; beyond day 7 forecasts are less certain.', 'Bishingiye ku iteganyagihe rya Open-Meteo ry’iminsi 14; nyuma y’umunsi wa 7 ntiryizewe cyane.'))));
     } else if (a.water.length) {
-      const rows = forecastDays(daily, 7).map((d) => ({ name: dayLabel(d.date).split(' ').slice(0, 2).join(' '), rain: Math.round(d.rain * 10) / 10, need: Math.round((d.et0 != null ? d.et0 : 3.8) * kcFor(crop, stage) * 10) / 10 }));
+      const rows = forecastDays(daily, 7).map((d) => ({ name: dayLabel(d.date, lang).split(' ').slice(0, lang === 'RW' ? 3 : 2).join(' '), rain: Math.round(d.rain * 10) / 10, need: Math.round((d.et0 != null ? d.et0 : 3.8) * kcFor(crop, stage) * 10) / 10 }));
       agroBlocks.push(h('div', { className: 'recommendation', key: 'water', 'data-read-block': true }, h('b', null, T(lang, `Irrigation and water for ${cropName(crop, lang)}`, `Kuhira n’amazi ku ${cropName(crop, lang)}`)), a.water.map((t, i) => h('p', { key: i }, t)),
         ag.water && ag.water.critical ? h('p', null, h('b', null, T(lang, 'Critical stage: protect water supply now.', 'Igihe cy’ingenzi: rinda amazi ubu.'))) : null,
         h('small', null, T(lang, 'Method: FAO-56 water balance (forecast ET0 × crop factor − useful rain). A planning guide for a typical field, not a sensor reading.', 'Uburyo: FAO-56 (ET0 y’iteganyagihe × ikigereranyo cy’igihingwa − imvura ifasha). Ni inama yo gutegura, si igipimo cy’umurima wawe.'))));
@@ -96,7 +96,7 @@ export default function NisrAdvisor({ lang = 'EN', apiBase = '', initialDistrict
         h(ResponsiveContainer, { width: '100%', height: 220 }, h(BarChart, { data: rows }, h(CartesianGrid, { strokeDasharray: '3 3', vertical: false }), h(XAxis, { dataKey: 'name', tick: { fontSize: 11 } }), h(YAxis, null), h(Tooltip, null), h(Legend, null), h(Bar, { dataKey: 'rain', name: T(lang, 'Rain', 'Imvura'), fill: '#258e9b', radius: [4, 4, 0, 0] }), h(Bar, { dataKey: 'need', name: T(lang, 'Crop need', 'Igikenewe'), fill: '#e5a53a', radius: [4, 4, 0, 0] })))));
     }
     if (ag.windows) {
-      const fmtDays = (arr) => (arr.length ? arr.slice(0, 5).map((x) => dayLabel(x)).join(', ') : T(lang, 'none this week', 'nta munsi w’iki cyumweru'));
+      const fmtDays = (arr) => (arr.length ? arr.slice(0, 5).map((x) => dayLabel(x, lang)).join(', ') : T(lang, 'none this week', 'nta munsi w’iki cyumweru'));
       agroBlocks.push(h('div', { className: 'recommendation', key: 'win', 'data-read-block': true }, h('b', null, T(lang, 'Best days this week', 'Iminsi myiza y’iki cyumweru')),
         h('p', null, T(lang, `Spraying (dry and calm): ${fmtDays(ag.windows.spray)}.`, `Gutera umuti (humutse kandi nta muyaga): ${fmtDays(ag.windows.spray)}.`)),
         h('p', null, T(lang, `Harvest and drying: ${fmtDays(ag.windows.harvest)}.`, `Gusarura no kumisha: ${fmtDays(ag.windows.harvest)}.`)),
@@ -139,7 +139,7 @@ export default function NisrAdvisor({ lang = 'EN', apiBase = '', initialDistrict
       a.recommendations.length ? a.recommendations.map((r, i) => h('div', { className: 'recommendation', key: r.key, 'data-read-block': true },
         h('b', null, `${i + 1}. ${r.title}`), h('p', null, r.detail), h('small', null, T(lang, `Evidence: NISR AHS 2024, ${r.evidence.replace('n=', '')} ${cropName(crop, lang)} plots. Association, not guarantee.`, `Ibimenyetso: NISR AHS 2024, imirima ${r.evidence.replace('n=', '')}. Ni ibigaragara, si ingwate.`))))
         : h('div', { className: 'recommendation', 'data-read-block': true }, h('b', null, T(lang, 'No clear extra gain found', 'Nta nyongera igaragara yabonetse')), h('p', null, T(lang, 'For the practices you selected, or for this crop, the survey shows no clearly supported extra gain. Keep scouting weekly and ask your agronomist.', 'Ku byo wahisemo, cyangwa kuri iki gihingwa, ubushakashatsi nta nyongera igaragara bwerekana. Komeza ugenzure umurima buri cyumweru, ubaze umujyanama w’ubuhinzi.'))),
-      a.risks.map((r) => h('div', { className: 'recommendation nisr-risk', key: r.key, 'data-read-block': true }, h('b', null, T(lang, `Local risk: ${r.pct}% of plots affected`, `Ibyago byo muri aka karere: ${r.pct}% by’imirima`)), h('p', null, r.detail), h('small', null, 'Evidence: NISR AHS 2024 soil-threat reports for this district.'))),
+      a.risks.map((r) => h('div', { className: 'recommendation nisr-risk', key: r.key, 'data-read-block': true }, h('b', null, T(lang, `Local risk: ${r.pct}% of plots affected`, `Ibyago byo muri aka karere: ${r.pct}% by’imirima`)), h('p', null, r.detail), h('small', null, T(lang, 'Evidence: NISR AHS 2024 soil-threat reports for this district.', 'Ibimenyetso: raporo za NISR AHS 2024 z’ibibazo by’ubutaka muri aka karere.')))),
       a.notes.concat(a.tips).length ? h('div', { className: 'recommendation', 'data-read-block': true }, h('b', null, T(lang, 'Also consider', 'Tekereza no kuri ibi')), a.notes.concat(a.tips).map((t, i) => h('p', { key: i }, t))) : null,
       h('article', { className: 'chartcard' }, h('h3', null, T(lang, 'Yield comparison (kg per hectare)', 'Igereranya ry’umusaruro (kg kuri hegitari)')),
         h(ResponsiveContainer, { width: '100%', height: 240 }, h(BarChart, { data: chartRows }, h(CartesianGrid, { strokeDasharray: '3 3', vertical: false }), h(XAxis, { dataKey: 'name' }), h(YAxis, null), h(Tooltip, null),
@@ -152,5 +152,5 @@ export default function NisrAdvisor({ lang = 'EN', apiBase = '', initialDistrict
         h('button', { type: 'button', className: 'primary', onClick: read }, T(lang, 'Read this advice aloud', 'Soma iyi nama mu ijwi')),
         h('button', { type: 'button', className: 'secondary', onClick: () => stopSpeaking() }, T(lang, 'Stop', 'Hagarika')),
         h('a', { className: 'secondary nisr-share', href: 'https://wa.me/?text=' + encodeURIComponent(shareText), target: '_blank', rel: 'noreferrer' }, T(lang, 'Share on WhatsApp', 'Sangiza kuri WhatsApp'))),
-      h('small', { className: 'data-caveat' }, ins.meta.source + '. ' + ins.meta.caveat)));
+      h('small', { className: 'data-caveat' }, metaNote(ins, lang))));
 }

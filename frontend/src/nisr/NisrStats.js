@@ -1,7 +1,7 @@
 // IREME - NISR microdata statistics panel (shown on the Statistics page, below the existing charts' filters).
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { loadInsights, yieldByCrop, yieldByDistrict, practiceEffects, adoptionByCrop, plantingFor, cropName, practiceName, currentSeason, SEASON_LABEL, knownCrops, modelledCrops, statsDigest, districtTable, householdSupport, lowestSupport, trendByCrop, spreadByCrop } from './engine.js';
+import { loadInsights, yieldByCrop, yieldByDistrict, practiceEffects, adoptionByCrop, plantingFor, cropName, practiceName, currentSeason, SEASON_LABEL, knownCrops, modelledCrops, statsDigest, metaNote, districtTable, householdSupport, lowestSupport, trendByCrop, spreadByCrop } from './engine.js';
 import { speak } from '../voice/speech.js';
 
 const h = React.createElement;
@@ -31,7 +31,7 @@ export default function NisrStats({ lang = 'EN', apiBase = '', initialCrop = 'Ma
   const effects = practiceEffects(ins, crop, lang).map((e) => ({ name: e.label, pct: e.pct, clear: e.clear }));
   const adoption = adoptionByCrop(ins, modelledCrops(ins).slice(0, 8), lang).map((r) => ({ name: r.crop, improved: r.improved_seed, fertilizer: r.inorganic, compost: r.organic }));
   const seasonKey = season === 'all' ? currentSeason() : season;
-  const planting = plantingFor(ins, crop, seasonKey === 'C' ? 'A' : seasonKey).map((p) => ({ name: p.label, median: p.median }));
+  const planting = plantingFor(ins, crop, seasonKey === 'C' ? 'A' : seasonKey, lang).map((p) => ({ name: p.label, median: p.median }));
   const sL = SEASON_LABEL[lang === 'RW' ? 'RW' : 'EN'];
   const summary = T(lang,
     `${cropName(crop)} in the NISR 2024 household survey: typical plot yield ${fmt(node.national.median)} kilograms per hectare, average ${fmt(node.national.avg)}, from ${node.national.n} plots.`,
@@ -96,5 +96,5 @@ export default function NisrStats({ lang = 'EN', apiBase = '', initialCrop = 'Ma
       h('div', { className: 'nisr-table-wrap', 'data-noread': true }, h('table', { className: 'nisr-table' }, h('thead', null, h('tr', null, ['District', 'Typical kg/ha', 'Middle half', 'Plots', 'vs Rwanda', 'Improved seed', 'Fertilizer'].map((x, i) => h('th', { key: i }, lang === 'RW' ? ['Akarere', 'Usanzwe kg/ha', 'Igice cyo hagati', 'Imirima', 'Ugereranyije n’u Rwanda', 'Imbuto nziza', 'Ifumbire'][i] : x)))),
         h('tbody', null, table.map((r) => h('tr', { key: r.district }, h('td', null, r.district), h('td', null, fmt(r.median)), h('td', null, `${fmt(r.p25)}–${fmt(r.p75)}`), h('td', null, r.n), h('td', { className: r.vsNational >= 0 ? 'up' : 'down' }, (r.vsNational > 0 ? '+' : '') + r.vsNational + '%'), h('td', null, r.improved_seed + '%'), h('td', null, r.inorganic + '%')))))),
       h('button', { type: 'button', className: 'secondary', onClick: downloadCsv }, T(lang, 'Download table (CSV)', 'Kuramo imbonerahamwe (CSV)'))),
-    h('small', { className: 'data-caveat' }, ins.meta.source + '. ' + ins.meta.caveat));
+    h('small', { className: 'data-caveat' }, metaNote(ins, lang)));
 }

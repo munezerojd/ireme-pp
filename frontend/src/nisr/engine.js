@@ -1,4 +1,5 @@
 import { agronomyPlan, waterAdvice, dayLabel } from './agronomy.js';
+import { CROP_RW, cropName, rwOf, THREAT_RW, THREAT_EN, SOWING_RW, META_NOTE_RW } from './names.js';
 
 // IREME - NISR data engine (pure JavaScript, no React).
 // Reads backend/data/nisr_insights.json (built by backend/scripts/build_nisr_insights.py from the
@@ -41,24 +42,20 @@ export const CROP_ALIASES = {
   'Onion': ['onion', 'onions', 'igitunguru', 'ibitunguru'],
   'Carrot': ['carrot', 'carrots', 'karoti'],
 };
-export const CROP_RW = {
-  'Maize': 'Ibigori', 'Bush bean': 'Ibishyimbo (bitazamuka)', 'Climbing bean': 'Ibishyimbo bizamuka',
-  'Irish potato': 'Ibirayi', 'Sweet potato': 'Ibijumba', 'Cassava': 'Imyumbati', 'Paddy rice': 'Umuceri',
-  'Sorghum': 'Amasaka', 'Soybean': 'Soya', 'Groundnut': 'Ubunyobwa', 'Pea': 'Amashaza', 'Taro': 'Amateke',
-  'Wheat': 'Ingano', 'Tomato': 'Inyanya', 'Cabbage': 'Amashu', 'Eggplant': 'Intoryi', 'Sun flower': 'Ururabo rw’izuba',
-};
+export { CROP_RW, cropName };
 export { dayLabel };
 export const SEASON_LABEL = {
   EN: { A: 'Season A (Sep–Feb)', B: 'Season B (Mar–Jun)', C: 'Season C (Jul–Aug)' },
   RW: { A: 'Igihembwe A (Nzeri–Gashyantare)', B: 'Igihembwe B (Werurwe–Kamena)', C: 'Igihembwe C (Nyakanga–Kanama)' },
 };
+export const sowText = (ins, season, key, lang) => (lang === 'RW' ? ((SOWING_RW[season] || {})[key] || '') : (((ins.meta.sowing_text || {})[season] || {})[key] || ''));
+export const metaNote = (ins, lang) => (lang === 'RW' ? META_NOTE_RW : `${ins.meta.source}. ${ins.meta.caveat}`);
 export const PRACTICE_KEYS = ['improved_seed', 'inorganic', 'organic', 'pesticide', 'irrigation', 'anti_erosion'];
 const PRACTICE_NAME = {
   EN: { improved_seed: 'Improved seed', inorganic: 'Inorganic fertilizer', organic: 'Compost / manure', pesticide: 'Crop protection', irrigation: 'Irrigation', anti_erosion: 'Anti-erosion measures', intercrop: 'Intercropping' },
   RW: { improved_seed: 'Imbuto nziza', inorganic: 'Ifumbire mvaruganda', organic: 'Ifumbire y’imborera (compost)', pesticide: 'Kurinda ibihingwa', irrigation: 'Kuhira', anti_erosion: 'Kurwanya isuri', intercrop: 'Guhinga ibihingwa bivanze' },
 };
 export const practiceName = (k, lang = 'EN') => (PRACTICE_NAME[lang === 'RW' ? 'RW' : 'EN'][k] || k);
-export const cropName = (c, lang = 'EN') => (lang === 'RW' ? (CROP_RW[c] || c) : c);
 const T = (lang, en, rw) => (lang === 'RW' ? rw : en);
 const fmt = (n) => (n == null ? '–' : Math.round(n).toLocaleString('en-US'));
 const sgn = (n) => (n > 0 ? '+' : '') + Math.round(n);
@@ -144,7 +141,7 @@ export function weatherTips(crop, ws, lang = 'EN') {
     tips.push(T(lang, `Wet spell ahead (about ${fmt(ws.rain)} mm in ${ws.days} days). Keep drainage channels open and avoid spraying just before rain.`,
       `Hateganyijwe imvura nyinshi (nka mm ${fmt(ws.rain)} mu minsi ${ws.days}). Fungura inzira z’amazi kandi wirinde gutera umuti imvura igiye kugwa.`));
     if (wetCrops.includes(crop)) tips.push(T(lang, `${cropName(crop)} is prone to fungal disease in wet weather. Inspect leaves after rain and remove badly affected plants.`,
-      `${cropName(crop, 'RW')} yibasirwa n’indwara z’uduhumyo mu mvura nyinshi. Genzura amababi nyuma y’imvura kandi ukure ibimera byarembye cyane.`));
+      `Igihingwa ${rwOf(crop, 'cy')} cyibasirwa n’indwara z’uduhumyo mu mvura nyinshi. Genzura amababi nyuma y’imvura kandi ukure ibimera byarembye cyane.`));
   } else if (ws.level === 'dry') {
     tips.push(T(lang, 'Dry spell likely. Mulch to keep soil moisture, and do not rely on one forecast to decide planting.',
       'Hateganyijwe izuba ryinshi. Gumisha ubuhehere ukoresheje ibishingwe, kandi ntushingire ku iteganyagihe rimwe mu gutera.'));
@@ -205,11 +202,11 @@ export function advise(ins, { crop, district, season, areaHa = null, practices =
       let detail;
       if (p === 'improved_seed') {
         detail = T(lang, `Plots with improved seed had about ${Math.round(e.pct)}% higher yield (likely ${Math.round(e.lo)}% to ${Math.round(e.hi)}%). ${Math.round((share(p) || 0) * 100)}% of ${cropName(crop)} plots in the survey used it. Buy certified seed from approved sellers (RAB / agro-dealers).`,
-          `Imirima yakoresheje imbuto nziza yatanze umusaruro uri hejuru ya ${Math.round(e.pct)}% (hagati ya ${Math.round(e.lo)}% na ${Math.round(e.hi)}%). ${Math.round((share(p) || 0) * 100)}% by’imirima ya ${cropName(crop, 'RW')} mu bushakashatsi yazikoresheje. Gura imbuto zemewe ku bacuruzi bemewe (RAB / agro-dealers).`);
+          `Imirima yakoresheje imbuto nziza yatanze umusaruro uri hejuru ya ${Math.round(e.pct)}% (hagati ya ${Math.round(e.lo)}% na ${Math.round(e.hi)}%). ${Math.round((share(p) || 0) * 100)}% by’imirima ${rwOf(crop, 'y')} mu bushakashatsi yazikoresheje. Gura imbuto zemewe ku bacuruzi bemewe (RAB / agro-dealers).`);
       } else if (p === 'inorganic') {
         const types = node.fertilizer_types ? Object.keys(node.fertilizer_types).join(', ') : '';
         detail = T(lang, `Plots using inorganic fertilizer had about ${Math.round(e.pct)}% higher yield (likely ${Math.round(e.lo)}% to ${Math.round(e.hi)}%).${types ? ` Farmers growing ${cropName(crop)} mostly used: ${types}.` : ''} Get the right type and amount from a soil test or your agronomist; do not guess doses.`,
-          `Imirima yakoresheje ifumbire mvaruganda yatanze umusaruro uri hejuru ya ${Math.round(e.pct)}% (hagati ya ${Math.round(e.lo)}% na ${Math.round(e.hi)}%).${types ? ` Abahinzi ba ${cropName(crop, 'RW')} bakoresheje cyane: ${types}.` : ''} Baza umujyanama w’ubuhinzi ubwoko n’ingano bikwiye; ntukeke ingano.`);
+          `Imirima yakoresheje ifumbire mvaruganda yatanze umusaruro uri hejuru ya ${Math.round(e.pct)}% (hagati ya ${Math.round(e.lo)}% na ${Math.round(e.hi)}%).${types ? ` Abahinzi ${rwOf(crop, 'b')} bakoresheje cyane: ${types}.` : ''} Baza umujyanama w’ubuhinzi ubwoko n’ingano bikwiye; ntukeke ingano.`);
       } else if (p === 'organic') {
         detail = T(lang, `Plots with compost or manure had about ${Math.round(e.pct)}% higher yield (likely ${Math.round(e.lo)}% to ${Math.round(e.hi)}%). Use well-decomposed material; it also protects the soil.`,
           `Imirima yashyizwemo compost cyangwa ifumbire y’imborera yatanze umusaruro uri hejuru ya ${Math.round(e.pct)}% (hagati ya ${Math.round(e.lo)}% na ${Math.round(e.hi)}%). Koresha iyabaye neza; irinda n’ubutaka.`);
@@ -232,12 +229,13 @@ export function advise(ins, { crop, district, season, areaHa = null, practices =
     const planting = node.planting[s];
     if (sTxt && lateE && lateE.hi < -5) {
       const mainShare = planting && planting.main ? Math.round(planting.main.share * 100) : null;
-      const lateTxt = sTxt.late;
-      out.planting = { latePct: lateE.pct, window: sTxt.main, late: lateTxt };
+      const lateTxt = sowText(ins, s, 'late', lang);
+      const mainTxt = sowText(ins, s, 'main', lang);
+      out.planting = { latePct: lateE.pct, window: mainTxt, late: lateTxt };
       out.recommendations.push({
         key: 'timing', title: T(lang, 'Plant on time', 'Tera ku gihe'),
-        detail: T(lang, `${cropName(crop)} sown ${lateTxt} yielded about ${Math.abs(lateE.pct)}% less than crops sown on time (likely ${Math.abs(lateE.hi)}% to ${Math.abs(lateE.lo)}% less).${mainShare ? ` Most farmers (${mainShare}%) sowed ${sTxt.main}.` : ''} Prepare land and seed early and sow when the rains are reliable.`,
-          `${cropName(crop, 'RW')} yateye nyuma (${lateTxt}) yatanze umusaruro uri munsi ya ${Math.abs(lateE.pct)}% ugereranyije n’iyateye ku gihe. Tegura umurima n’imbuto hakiri kare kandi utere imvura imaze kuba nyinshi kandi yizewe.`),
+        detail: T(lang, `${cropName(crop)} sown ${lateTxt} yielded about ${Math.abs(lateE.pct)}% less than crops sown on time (likely ${Math.abs(lateE.hi)}% to ${Math.abs(lateE.lo)}% less).${mainShare ? ` Most farmers (${mainShare}%) sowed ${mainTxt}.` : ''} Prepare land and seed early and sow when the rains are reliable.`,
+          `Igihingwa ${rwOf(crop, 'cy')} cyateye ${lateTxt} cyatanze umusaruro uri munsi ya ${Math.abs(Math.round(lateE.pct))}% ugereranyije n’icyateye ku gihe (hagati ya ${Math.abs(Math.round(lateE.hi))}% na ${Math.abs(Math.round(lateE.lo))}% munsi).${mainShare ? ` Abahinzi benshi (${mainShare}%) bateye ${mainTxt}.` : ''} Tegura umurima n’imbuto hakiri kare kandi utere imvura imaze kuba nyinshi kandi yizewe.`),
         effectPct: lateE.pct, lo: lateE.lo, hi: lateE.hi, share: null, evidence: `n=${m.n}`,
       });
     }
@@ -245,7 +243,7 @@ export function advise(ins, { crop, district, season, areaHa = null, practices =
     const ic = m.effects['p:intercrop'];
     if (ic && ic.hi < -5) {
       out.notes.push(T(lang, `Mixed planting lowers the yield of ${cropName(crop)} per hectare of its own area (about ${Math.round(ic.pct)}%), but you also harvest the other crop. Compare total harvest and income before deciding.`,
-        `Guhinga ibihingwa bivanze bigabanya umusaruro wa ${cropName(crop, 'RW')} kuri hegitari y’ubuso bwawo (nka ${Math.round(ic.pct)}%), ariko usarura n’ikindi gihingwa. Gereranya umusaruro wose n’amafaranga mbere yo guhitamo.`));
+        `Guhinga ibihingwa bivanze bigabanya umusaruro ${rwOf(crop, 'w')} kuri hegitari y’ubuso bwawo (nka ${Math.round(ic.pct)}%), ariko usarura n’ikindi gihingwa. Gereranya umusaruro wose n’amafaranga mbere yo guhitamo.`));
     }
 
     // scenario with all recommended practices
@@ -305,7 +303,7 @@ export function speechFor(a, lang = 'EN') {
   const ref = (a.benchmarks.district || a.benchmarks.national);
   if (ref) {
     parts.push(T(lang, `For ${cropName(a.crop)}${place}, a typical plot produced about ${fmt(ref.median)} kilograms per hectare in the NISR 2024 survey.`,
-      `Ku ${cropName(a.crop, 'RW')}${place}, umurima usanzwe watanze nka kilogarama ${fmt(ref.median)} kuri hegitari mu bushakashatsi bwa NISR 2024.`));
+      `Ku gihingwa ${rwOf(a.crop, 'cy')}${place}, umurima usanzwe watanze nka kilogarama ${fmt(ref.median)} kuri hegitari mu bushakashatsi bwa NISR 2024.`));
   }
   if (a.expected) {
     const using = a.practicesUsed;
@@ -360,12 +358,11 @@ export function adoptionByCrop(ins, crops, lang = 'EN') {
     return row;
   });
 }
-export function plantingFor(ins, crop, season) {
+export function plantingFor(ins, crop, season, lang = 'EN') {
   const n = ins.crops[crop];
   const w = n && n.planting[season];
   if (!w) return [];
-  const txt = ins.meta.sowing_text[season] || {};
-  return ['early', 'main', 'late'].filter((k) => w[k]).map((k) => ({ window: k, label: txt[k] || k, median: w[k].median, share: Math.round(w[k].share * 100), n: w[k].n }));
+  return ['early', 'main', 'late'].filter((k) => w[k]).map((k) => ({ window: k, label: sowText(ins, season, k, lang) || k, median: w[k].median, share: Math.round(w[k].share * 100), n: w[k].n }));
 }
 
 // ------------------------------------------------------------------ Ask IREME helpers
@@ -417,10 +414,10 @@ export function answerQuestion(ins, question, { lang = 'EN', season = currentSea
   const a = advise(ins, { crop, district: d, season, practices, weather, lang });
   if (!a.ok) return null;
   if (wantsPlanting) {
-    const sTxt = ins.meta.sowing_text[season] || {};
     const late = a.planting;
-    const base = T(lang, `For ${cropName(crop)} in ${SEASON_LABEL.EN[season]}, most farmers sowed ${sTxt.main || 'in the main window'}.`,
-      `Ku ${cropName(crop, 'RW')} mu ${SEASON_LABEL.RW[season]}, abahinzi benshi batera ${sTxt.main || 'mu gihe nyamukuru'}.`);
+    const mainW = sowText(ins, season, 'main', lang);
+    const base = T(lang, `For ${cropName(crop)} in ${SEASON_LABEL.EN[season]}, most farmers sowed ${mainW || 'in the main window'}.`,
+      `Ku gihingwa ${rwOf(crop, 'cy')} mu ${SEASON_LABEL.RW[season].replace(/^I/, 'i')}, abahinzi benshi batera ${mainW || 'mu gihe nyamukuru'}.`);
     const extra = late ? T(lang, ` Sowing ${late.late} gave about ${Math.abs(Math.round(late.latePct))}% lower yield in the survey, so prepare early and sow when rains are reliable.`,
       ` Gutera nyuma (${late.late}) byatanze umusaruro uri munsi ya ${Math.abs(Math.round(late.latePct))}% mu bushakashatsi, bityo tegura hakiri kare kandi utere imvura yizewe.`) : '';
     return { topic: 'planting-time', crop, district: d, answer: base + extra };
@@ -448,10 +445,10 @@ export function statsDigest(ins, crop, lang = 'EN') {
   if (sA && sB) out.push(T(lang, `Season A median ${fmt(sA.median)} kg/ha versus Season B ${fmt(sB.median)} kg/ha (${sA.median >= sB.median ? 'A is higher' : 'B is higher'}).`, `Igihembwe A: ${fmt(sA.median)} kg/ha, igihembwe B: ${fmt(sB.median)} kg/ha (${sA.median >= sB.median ? 'A kiri hejuru' : 'B kiri hejuru'}).`));
   const eff = practiceEffects(ins, crop, lang).filter((e) => e.clear && e.pct > 0).slice(0, 2);
   eff.forEach((e) => out.push(T(lang, `${e.label}: plots using it had about ${Math.round(e.pct)}% higher yield (likely ${Math.round(e.lo)}% to ${Math.round(e.hi)}%); ${e.share}% of ${cropName(crop)} plots use it.`,
-    `${e.label}: imirima iyikoresha yatanze umusaruro uri hejuru ya ${Math.round(e.pct)}% (hagati ya ${Math.round(e.lo)}% na ${Math.round(e.hi)}%); ${e.share}% by’imirima ya ${cropName(crop, 'RW')} iyikoresha.`)));
+    `${e.label}: imirima iyikoresha yatanze umusaruro uri hejuru ya ${Math.round(e.pct)}% (hagati ya ${Math.round(e.lo)}% na ${Math.round(e.hi)}%); ${e.share}% by’imirima ${rwOf(crop, 'y')} iyikoresha.`)));
   if (n.trend) out.push(T(lang, `Farmers reported ${cropName(crop)} production went down on ${Math.round(n.trend.down * 100)}% of plots, stayed the same on ${Math.round(n.trend.same * 100)}% and went up on ${Math.round(n.trend.up * 100)}%.`,
-    `Abahinzi bavuze ko umusaruro w’${cropName(crop, 'RW')} wagabanutse ku ${Math.round(n.trend.down * 100)}% by’imirima, utahindutse ku ${Math.round(n.trend.same * 100)}% kandi wiyongereye ku ${Math.round(n.trend.up * 100)}%.`));
-  if (n.fertilizer_types) out.push(T(lang, `Most used fertilizers on ${cropName(crop)}: ${Object.entries(n.fertilizer_types).map(([k, v]) => `${k} (${Math.round(v * 100)}%)`).join(', ')}.`, `Ifumbire ikoreshwa cyane ku ${cropName(crop, 'RW')}: ${Object.entries(n.fertilizer_types).map(([k, v]) => `${k} (${Math.round(v * 100)}%)`).join(', ')}.`));
+    `Abahinzi bavuze ko umusaruro ${rwOf(crop, 'w')} wagabanutse ku ${Math.round(n.trend.down * 100)}% by’imirima, utahindutse ku ${Math.round(n.trend.same * 100)}% kandi wiyongereye ku ${Math.round(n.trend.up * 100)}%.`));
+  if (n.fertilizer_types) out.push(T(lang, `Most used fertilizers on ${cropName(crop)}: ${Object.entries(n.fertilizer_types).map(([k, v]) => `${k} (${Math.round(v * 100)}%)`).join(', ')}.`, `Ifumbire ikoreshwa cyane ku gihingwa ${rwOf(crop, 'cy')}: ${Object.entries(n.fertilizer_types).map(([k, v]) => `${k} (${Math.round(v * 100)}%)`).join(', ')}.`));
   return out;
 }
 export function districtTable(ins, crop) {

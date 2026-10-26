@@ -5,6 +5,7 @@
 // Crop water use follows the FAO-56 idea: crop water need = reference evapotranspiration (ET0) x crop coefficient (Kc).
 // Numbers are planning guides, not measurements of one field - the advice always says so.
 
+import { rwOf } from './names.js';
 const T = (lang, en, rw) => (lang === 'RW' ? rw : en);
 
 export const STAGES = ['not_planted', 'just_planted', 'growing', 'flowering', 'near_harvest'];
@@ -28,7 +29,7 @@ const SOIL = { light: { cap: 25, event: 12, gap: 'every 2–3 days', gapRW: 'bur
 // kc = crop coefficient (initial / mid-season / late); heat & cold in °C; critical = most water-sensitive stage.
 export const CROP_AGRO = {
   'Maize': { kc: [0.4, 1.2, 0.6], heat: 35, cold: 8, critical: 'flowering', crit: ['Tasseling and silking is the most water-sensitive time for maize.', 'Gutera indabyo n’ubwoya bw’ibigori (silking) ni cyo gihe ibigori bikenera amazi cyane.'], scout: ['fall armyworm in the whorl, maize streak and leaf blight', 'inyenzi z’ibigori (fall armyworm), maize streak n’indwara z’amababi'] },
-  'Bush bean': { kc: [0.4, 1.05, 0.35], heat: 32, cold: 8, critical: 'flowering', crit: ['Flowering and pod filling are the most water-sensitive stages for beans.', 'Kuzana indabyo no kwera imiteja ni ibihe ibishyimbo bikenera amazi cyane.'], scout: ['angular leaf spot, rust and anthracnose, bean stem maggot', 'angular leaf spot, rust, anthracnose n’isazi y’ibishyimbo'] },
+  'Bush bean': { kc: [0.4, 1.05, 0.35], heat: 32, cold: 8, critical: 'flowering', crit: ['Flowering and pod filling are the most water-sensitive stages for beans.', 'Kuzana indabyo no kwera imiteja ni ibihe ibishyimbo bikenera amazi cyane.'], scout: ['angular leaf spot, rust and anthracnose, bean stem maggot', 'ibibara by’amababi (angular leaf spot), ingese (rust), anthracnose n’isazi y’ibishyimbo'] },
   'Climbing bean': { kc: [0.4, 1.15, 0.35], heat: 32, cold: 8, critical: 'flowering', crit: ['Flowering and pod filling are the most water-sensitive stages for beans.', 'Kuzana indabyo no kwera imiteja ni ibihe ibishyimbo bikenera amazi cyane.'], scout: ['angular leaf spot, rust and anthracnose; keep stakes firm', 'angular leaf spot, rust, anthracnose; komeza imambo zikomeye'] },
   'Irish potato': { kc: [0.5, 1.15, 0.75], heat: 29, cold: 2, critical: 'flowering', crit: ['Tuber initiation and bulking need steady moisture; avoid both drought and waterlogging.', 'Gutangira no kubyimba kw’ibirayi bikenera ubuhehere buhoraho; irinde izuba ryinshi n’amazi menshi.'], scout: ['late blight (dark spots, white mould under leaves) and bacterial wilt', 'late blight (ibibara by’umukara) na bacterial wilt'] },
   'Sweet potato': { kc: [0.5, 1.15, 0.65], heat: 36, cold: 10, critical: 'growing', crit: ['Root bulking needs moisture; avoid waterlogging that rots roots.', 'Kubyimba kw’ibijumba bikenera ubuhehere; irinde amazi menshi ashyira imizi.'], scout: ['sweet potato weevil and virus; use clean vines', 'inyenzi z’ibijumba n’virusi; koresha imitumba isukuye'] },
@@ -60,10 +61,13 @@ export function forecastDays(daily, n = 7) {
   }
   return out;
 }
+const WD_RW = ['Ku cyumweru', 'Kuwa mbere', 'Kuwa kabiri', 'Kuwa gatatu', 'Kuwa kane', 'Kuwa gatanu', 'Kuwa gatandatu'];
+const MON_RW = ['Mutarama', 'Gashyantare', 'Werurwe', 'Mata', 'Gicurasi', 'Kamena', 'Nyakanga', 'Kanama', 'Nzeri', 'Ukwakira', 'Ugushyingo', 'Ukuboza'];
 export function dayLabel(iso, lang = 'EN') {
   const d = new Date(iso + 'T12:00:00');
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(lang === 'RW' ? 'en-GB' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  if (lang === 'RW') return `${WD_RW[d.getDay()]} ${d.getDate()} ${MON_RW[d.getMonth()]}`;
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 const DEFAULT_ET0 = 3.8;      // mm/day, typical Rwandan highland value when the forecast gives none
 export const effectiveRain = (r) => (r < 1 ? 0 : Math.min(r, 25) * 0.8 + Math.max(0, r - 25) * 0.2);
@@ -132,20 +136,20 @@ export function weatherAlerts(daily, { crop, stage = 'growing' }, lang = 'EN') {
   const tmean = days.reduce((x, d) => x + ((d.tmax ?? 22) + (d.tmin ?? 12)) / 2, 0) / days.length;
   const dryRun = (() => { let best = 0; let cur = 0; days.forEach((d) => { if (d.rain < 1) { cur += 1; best = Math.max(best, cur); } else cur = 0; }); return best; })();
 
-  if (heavy.length) alerts.push({ key: 'heavy_rain', level: 'high', text: T(lang, `Heavy rain (30 mm or more) is forecast on ${heavy.map((d) => dayLabel(d.date)).join(', ')}. Clear drains, protect bare slopes, and delay spraying, fertilizer application and harvest of mature crops if you can.`, `Hateganyijwe imvura nyinshi (mm 30 cyangwa zirenga) ku ${heavy.map((d) => dayLabel(d.date)).join(', ')}. Fungura inzira z’amazi, urinde imisozi idatwikiriye, kandi ugerageze gutinza gutera umuti, ifumbire no gusarura ibihingwa bihishije.`) });
+  if (heavy.length) alerts.push({ key: 'heavy_rain', level: 'high', text: T(lang, `Heavy rain (30 mm or more) is forecast on ${heavy.map((d) => dayLabel(d.date, lang)).join(', ')}. Clear drains, protect bare slopes, and delay spraying, fertilizer application and harvest of mature crops if you can.`, `Hateganyijwe imvura nyinshi (mm 30 cyangwa zirenga) ku ${heavy.map((d) => dayLabel(d.date, lang)).join(', ')}. Fungura inzira z’amazi, urinde imisozi idatwikiriye, kandi ugerageze gutinza gutera umuti, ifumbire no gusarura ibihingwa bihishije.`) });
   const late = ['Irish potato', 'Tomato'].includes(crop);
   const foliar = ['Bush bean', 'Climbing bean', 'Soybean', 'Groundnut', 'Pea', 'Wheat', 'Cabbage', 'Eggplant', 'Maize', 'Paddy rice'].includes(crop);
   if (rainyDays >= 4 && tmean < 24 && (late || foliar)) {
     const lvl = rainyDays >= 5 ? 'high' : 'medium';
-    alerts.push({ key: 'disease', level: lvl, text: T(lang, `Wet and mild weather (${rainyDays} rainy days in the next 7) favours fungal diseases of ${crop}. Scout every 2–3 days for ${a.scout[0]}, remove badly infected plants, and avoid working in wet fields.`, `Ikirere gitose kandi gishyushye bike (iminsi ${rainyDays} y’imvura mu 7 iri imbere) gikundira indwara z’uduhumyo ku ${crop}. Genzura buri minsi 2–3: ${a.scout[1]}, ukure ibimera byarembye cyane, wirinde gukorera mu murima utose.`) });
+    alerts.push({ key: 'disease', level: lvl, text: T(lang, `Wet and mild weather (${rainyDays} rainy days in the next 7) favours fungal diseases of ${crop}. Scout every 2–3 days for ${a.scout[0]}, remove badly infected plants, and avoid working in wet fields.`, `Ikirere gitose kandi gishyushye bike (iminsi ${rainyDays} y’imvura mu 7 iri imbere) gikundira indwara z’uduhumyo ku gihingwa ${rwOf(crop, 'cy')}. Genzura buri minsi 2–3: ${a.scout[1]}, ukure ibimera byarembye cyane, wirinde gukorera mu murima utose.`) });
   } else if (rainyDays >= 3 && late) {
-    alerts.push({ key: 'disease', level: 'medium', text: T(lang, `Some wet days ahead: check ${crop} leaves for ${a.scout[0]} after each rain.`, `Hari iminsi y’imvura: genzura amababi ya ${crop} nyuma ya buri mvura (${a.scout[1]}).`) });
+    alerts.push({ key: 'disease', level: 'medium', text: T(lang, `Some wet days ahead: check ${crop} leaves for ${a.scout[0]} after each rain.`, `Hari iminsi y’imvura: genzura amababi ${rwOf(crop, 'y')} nyuma ya buri mvura (${a.scout[1]}).`) });
   }
   if (dryRun >= 5 && days.some((d) => (d.tmax ?? 0) >= 26) && ['Maize', 'Sorghum'].includes(crop)) alerts.push({ key: 'armyworm', level: 'medium', text: T(lang, `A dry, warm spell (${dryRun} dry days) favours fall armyworm. Check the whorls and leaves early in the morning and ask your extension officer about control if you find larvae.`, `Izuba ryinshi n’ubushyuhe (iminsi ${dryRun} nta mvura) bikundira inyenzi z’ibigori. Genzura imitwe n’amababi mu gitondo, ubaze umujyanama w’ubuhinzi uko zirwanywa nubona izo nyenzi.`) });
   const hot = days.filter((d) => d.tmax != null && d.tmax >= a.heat);
-  if (hot.length && stage !== 'not_planted') alerts.push({ key: 'heat', level: stage === 'flowering' ? 'high' : 'medium', text: T(lang, `Very hot days (${Math.round(Math.max(...hot.map((d) => d.tmax)))}°C) are forecast. Heat can cause flower drop and poor ${crop} yields${stage === 'flowering' ? ' at flowering' : ''}; keep soil moist and mulched.`, `Hateganyijwe iminsi ishyushye cyane (${Math.round(Math.max(...hot.map((d) => d.tmax)))}°C). Ubushyuhe bushobora gutuma indabyo zigwa n’umusaruro wa ${crop} ukagabanuka; gumisha ubutaka butose kandi ubutwikire.`) });
+  if (hot.length && stage !== 'not_planted') alerts.push({ key: 'heat', level: stage === 'flowering' ? 'high' : 'medium', text: T(lang, `Very hot days (${Math.round(Math.max(...hot.map((d) => d.tmax)))}°C) are forecast. Heat can cause flower drop and poor ${crop} yields${stage === 'flowering' ? ' at flowering' : ''}; keep soil moist and mulched.`, `Hateganyijwe iminsi ishyushye cyane (${Math.round(Math.max(...hot.map((d) => d.tmax)))}°C). Ubushyuhe bushobora gutuma indabyo zigwa n’umusaruro ${rwOf(crop, 'w')} ukagabanuka; gumisha ubutaka butose kandi ubutwikire.`) });
   const cold = days.filter((d) => d.tmin != null && d.tmin <= a.cold);
-  if (cold.length && stage !== 'not_planted') alerts.push({ key: 'cold', level: 'medium', text: T(lang, `Cold nights (${Math.round(Math.min(...cold.map((d) => d.tmin)))}°C) are forecast. ${crop} can be damaged by cold; cover young plants if possible.`, `Hateganyijwe amajoro akonje (${Math.round(Math.min(...cold.map((d) => d.tmin)))}°C). ${crop} gishobora kwangizwa n’imbeho; utwikire ibimera bito niba bishoboka.`) });
+  if (cold.length && stage !== 'not_planted') alerts.push({ key: 'cold', level: 'medium', text: T(lang, `Cold nights (${Math.round(Math.min(...cold.map((d) => d.tmin)))}°C) are forecast. ${crop} can be damaged by cold; cover young plants if possible.`, `Hateganyijwe amajoro akonje (${Math.round(Math.min(...cold.map((d) => d.tmin)))}°C). Igihingwa ${rwOf(crop, 'cy')} gishobora kwangizwa n’imbeho; utwikire ibimera bito niba bishoboka.`) });
   if (stage === 'near_harvest' && rain7 >= 25) alerts.push({ key: 'harvest_wet', level: 'high', text: T(lang, 'Rain is forecast near harvest. Harvest on the driest days, dry the crop on tarpaulins or raised racks, and store only well-dried produce (about 13–14% moisture for grain) in clean, dry bags to avoid mould and aflatoxin.', 'Hateganyijwe imvura hafi y’isarura. Sarura ku minsi yumutse cyane, wumishe umusaruro ku mpuzankano cyangwa ku bishyigikiye, kandi ubike gusa umusaruro wumye neza (nka 13–14% by’ubuhehere ku mbuto) mu mifuka isukuye kandi yumutse wirinde ibumba na aflatoxin.') });
   return alerts;
 }
@@ -202,13 +206,13 @@ export function waterAdvice(w, lang = 'EN', crop = '') {
   if (w.status === 'surplus') out.push(T(lang, 'Rain will exceed crop needs. Do not irrigate; keep drains open to avoid waterlogging and root disease.', 'Imvura izarenga ibyo igihingwa gikeneye. Ntukuhire; fungura inzira z’amazi wirinde amazi menshi n’indwara z’imizi.'));
   else if (w.irrigation === 'can_irrigate') {
     if (w.schedule.length) {
-      const list = w.schedule.map((e) => `${dayLabel(e.date)} (${e.mm} mm)`).join(', ');
+      const list = w.schedule.map((e) => `${dayLabel(e.date, lang)} (${e.mm} mm)`).join(', ');
       out.push(T(lang, `Suggested irrigation: ${list}. 1 mm is 1 litre per square metre, so ${w.schedule[0].mm} mm is about ${w.schedule[0].mm * 100} litres on a 10 m × 10 m bed. Water early morning or late evening, soaking the root zone rather than the leaves.`,
         `Kuhira bisabwa: ${list}. mm 1 ni litiro 1 kuri metero kare, bityo mm ${w.schedule[0].mm} ni nka litiro ${w.schedule[0].mm * 100} ku murima wa m 10 × m 10. Hira mu gitondo cya kare cyangwa nimugoroba, ushyire amazi ku mizi aho kuyashyira ku mababi.`));
     } else out.push(T(lang, 'Soil moisture should stay adequate this week; no irrigation is needed unless the weather changes.', 'Ubuhehere bw’ubutaka buzaba buhagije muri iki cyumweru; nta kuhira gukenewe keretse ikirere gihindutse.'));
   } else if (w.status === 'deficit' || w.status === 'severe') {
-    out.push(T(lang, `Rain alone may not meet crop needs${w.firstStress ? ` (stress possible from ${dayLabel(w.firstStress)})` : ''}. Mulch the soil, weed carefully so weeds do not steal water, and avoid fertilizer until rain returns.${w.critical ? ' This is a critical stage, so protect moisture now.' : ''}`,
-      `Imvura yonyine ishobora kudahaza ibyo igihingwa gikeneye${w.firstStress ? ` (guhangayika bishobora gutangira ${dayLabel(w.firstStress)})` : ''}. Twikira ubutaka n’ibishingwe, ukure ibyatsi kugira ngo bitwara amazi, kandi wirinde ifumbire imvura itaragaruka.${w.critical ? ' Iki ni igihe cy’ingenzi, urinde ubuhehere ubu.' : ''}`));
+    out.push(T(lang, `Rain alone may not meet crop needs${w.firstStress ? ` (stress possible from ${dayLabel(w.firstStress, lang)})` : ''}. Mulch the soil, weed carefully so weeds do not steal water, and avoid fertilizer until rain returns.${w.critical ? ' This is a critical stage, so protect moisture now.' : ''}`,
+      `Imvura yonyine ishobora kudahaza ibyo igihingwa gikeneye${w.firstStress ? ` (guhangayika bishobora gutangira ${dayLabel(w.firstStress, lang)})` : ''}. Twikira ubutaka n’ibishingwe, ukure ibyatsi kugira ngo bitwara amazi, kandi wirinde ifumbire imvura itaragaruka.${w.critical ? ' Iki ni igihe cy’ingenzi, urinde ubuhehere ubu.' : ''}`));
   } else out.push(T(lang, 'Rain should be enough for the crop this week. Keep the soil covered to hold moisture.', 'Imvura ikwiye kuba ihagije igihingwa muri iki cyumweru. Komeza utwikire ubutaka kugira ngo bufate ubuhehere.'));
   if (w.irrigation === 'can_irrigate') out.push(T(lang, `On ${w.soil === 'light' ? 'light' : w.soil === 'heavy' ? 'heavy' : 'medium'} soil, irrigate about ${s.event} mm ${s.gap} instead of a little every day.`, `Ku butaka ${w.soil === 'light' ? 'bw’umusenyi' : w.soil === 'heavy' ? 'bw’ibumba' : 'busanzwe'}, hira nka mm ${s.event} ${s.gapRW} aho guhira gake buri munsi.`));
   return out;
