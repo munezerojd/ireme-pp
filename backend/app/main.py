@@ -16,7 +16,9 @@ SECRET_KEY = os.getenv('IREME_SECRET_KEY', 'dev-only-change-me-before-deployment
 TM_MODEL_BASE_URL = os.getenv('IREME_TM_MODEL_URL', 'https://teachablemachine.withgoogle.com/models/es52NDWZW/').rstrip('/') + '/'
 ORIGINS = [x.strip() for x in os.getenv('IREME_CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',') if x.strip()]
 app = FastAPI(title='IREME Rwanda Agriculture API', version='1.0.0', description='Backend API for the IREME agriculture intelligence web application.')
-app.add_middleware(CORSMiddleware, allow_origins=ORIGINS, allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
+app.add_middleware(CORSMiddleware, allow_origins=[
+        "https://ireme-web.onrender.com"
+    ], allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
 class LoginIn(BaseModel):
     password: str = Field(min_length=1, max_length=256)

@@ -14,9 +14,12 @@ import RwandaAgriMap from'./map/RwandaAgriMap.js';
 const source='NISR Seasonal Agricultural Survey 2024 Annual Report';
 const CROP_RW_UI={Maize:'Ibigori',Beans:'Ibishyimbo','Bush bean':'Ibishyimbo (bitazamuka)','Climbing bean':'Ibishyimbo bizamuka',Cassava:'Imyumbati','Irish potato':'Ibirayi','Sweet potato':'Ibijumba',Rice:'Umuceri','Paddy rice':'Umuceri',Banana:'Ibitoki',Vegetables:'Imboga',Coffee:'Ikawa',Tea:'Icyayi',Other:'Ibindi',Wheat:'Ingano',Sorghum:'Amasaka','French beans':'Ibishyimbo bya Faransa',Amaranth:'Dodo',Millet:'Uburo','Sweet pepper':'Puwavuro','Chia seeds':'Imbuto za chia',Pumpkin:'Igihaza',Garlic:'Tungurusumu','Cooking banana':'Ibitoki bitekwa',Pepper:'Urusenda',Onion:'Ibitunguru',Carrot:'Karoti',Tomato:'Inyanya',Cabbage:'Amashu',Soybean:'Soya',Groundnut:'Ubunyobwa',Pea:'Amashaza',Taro:'Amateke',Eggplant:'Intoryi'};
 // The provider URL is configured on the backend; the browser sees only the same-origin proxy endpoint.
-const MODEL_URL=(import.meta.env.VITE_API_BASE_URL||'http://127.0.0.1:8000')+'/api/teachable-machine/';
+const MODEL_URL =
+  `${API_BASE}/api/teachable-machine/`;
 let cachedTMModel=null; let cachedTMModelPromise=null;
-const API_BASE=import.meta.env.VITE_API_BASE_URL||'http://127.0.0.1:8000';
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://ireme-api.onrender.com";
 async function api(path,options={}){const token=localStorage.getItem('ireme_admin_token');const headers={'Content-Type':'application/json',...(options.headers||{})};if(token)headers.Authorization=`Bearer ${token}`;const response=await fetch(`${API_BASE}${path}`,{...options,headers});const data=await response.json().catch(()=>({detail:'Unexpected API response'}));if(!response.ok)throw new Error(data.detail||`API error ${response.status}`);return data;}
 const districts=['All districts','Gasabo','Kicukiro','Nyarugenge','Musanze','Rubavu','Huye','Nyagatare','Rwamagana','Bugesera','Gicumbi','Karongi','Nyamagabe'];
 const districtCoords={'Gasabo':[-1.91,30.10],'Kicukiro':[-1.97,30.10],'Nyarugenge':[-1.95,30.06],'Musanze':[-1.50,29.63],'Rubavu':[-1.68,29.26],'Huye':[-2.60,29.74],'Nyagatare':[-1.30,30.33],'Rwamagana':[-1.95,30.43],'Bugesera':[-2.15,30.05],'Gicumbi':[-1.58,30.07],'Karongi':[-2.00,29.35],'Nyamagabe':[-2.48,29.56]};
